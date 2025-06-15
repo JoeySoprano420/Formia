@@ -1,0 +1,4 @@
+Let X = 0;
+Let Y = 1;
+Let counter = 9;
+Let label == start_here;
