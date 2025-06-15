@@ -2,7 +2,7 @@
 
 **Title:** FORMIA (Formulating Outlines with Readable Meaning and Immediate Assembly)
 **Version:** 1.0.0 (Foundational Release)
-**Author:** Violet Violet, Violet Aura Creations
+**Author:** Joey Soprano, Violet Aura Creations
 
 ---
 
