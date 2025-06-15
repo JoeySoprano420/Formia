@@ -43,3 +43,26 @@ Start: calc
     X = X - 1;
 Return;
 
+✅ Example 1: Embedded Bootloader
+
+Start: boot
+    Let X = 0;
+    new buffer = 128;
+    if [X < 5] -> continue;
+Return;
+
+✅ Example 2: Teaching Conditional Jumps
+
+Start: lesson_one
+    Let score = 75;
+    if [score > 60] -> pass;
+Return;
+
+✅ Example 3: Runtime-Executable Spec Outline
+
+Start: process_spec
+    Let flag == SYSTEM_READY;
+    buffer = flag + 2;
+Return;
+
+
