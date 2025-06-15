@@ -46,6 +46,27 @@ def generate_fcr_instruction(keyword, tokens):
         return {"op": "mov", "dest": tokens[0], "value": tokens[idx+1]}
     return {"op": "nop"}
 
+def optimize_fcr(fcr):
+    optimized = []
+    i = 0
+    while i < len(fcr):
+        curr = fcr[i]
+        # Peephole optimization: consecutive load and add can be merged
+        if (i + 1 < len(fcr) and curr["op"] == "load"
+                and fcr[i + 1]["op"] == "mov"
+                and fcr[i + 1]["dest"] == curr["dest"]):
+            combined = {
+                "op": "load",
+                "dest": curr["dest"],
+                "value": fcr[i + 1]["value"]
+            }
+            optimized.append(combined)
+            i += 2
+        else:
+            optimized.append(curr)
+            i += 1
+    return optimized
+
 def parse_formia_code(source):
     output = []
     fcr = []
@@ -60,7 +81,8 @@ def parse_formia_code(source):
         keyword = tokens[0]
         fcr.append(generate_fcr_instruction(keyword, tokens[1:]))
         output.extend(translate_to_nasm(keyword, tokens[1:], context))
-    return output, context['variables'], context['functions'], fcr
+    optimized_fcr = optimize_fcr(fcr)
+    return output, context['variables'], context['functions'], optimized_fcr
 
 def translate_to_nasm(keyword, tokens, context):
     nasm_lines = []
