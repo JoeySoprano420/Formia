@@ -1,5 +1,248 @@
 # Formia
 
+# FORMIA Language Specification
+
+**Title:** FORMIA (Formulating Outlines with Readable Meaning and Immediate Assembly)
+**Version:** 1.0.0 (Foundational Release)
+**Author:** Violet Violet, Violet Aura Creations
+
+---
+
+## I. Overview
+
+### What is FORMIA?
+
+FORMIA is a Human-Readable, Assembly-Executable Instruction-Oriented Language (HRAE-IOL). It is designed for direct mapping to NASM x64 machine code while remaining legible, logical, and instructional in its layout. It is a language where **what you see is what the CPU executes**. It aims to combine the clarity of educational syntax with the power of raw machine-level control.
+
+---
+
+## II. Design Principles
+
+### 1. Human-Legible Syntax
+
+* Outline-style formatting
+* Declarative control keywords (`Start`, `Return`, `Let`, etc.)
+* Clear block scoping with readable logic chains
+
+### 2. Direct Executability
+
+* Maps 1:1 with NASM x64 instructions
+* No interpreters or runtime required
+* Outputs `.asm` for direct `.obj` or `.exe` compilation
+
+### 3. Zero Overhead
+
+* No implicit memory allocation
+* No runtime GC
+* No headers, imports, or compiled libraries required
+
+### 4. Determinism
+
+* Instruction behavior is fully visible
+* Execution is linearly traceable
+* Predictable branching and flow
+
+### 5. Auditability
+
+* Designed for formal security, anti-cheat, and deterministic inspection
+* Perfect for secure systems, real-time apps, and educational transparency
+
+---
+
+## III. File Structure & Extensions
+
+* **.fom** — canonical FORMIA source file extension
+* **.asm** — NASM x64 emitted output
+* **.obj** — object file
+* **.exe** / **.bin** — compiled binary for execution
+
+---
+
+## IV. Syntax & Keywords
+
+### Declaration
+
+* `Let X = 5;` — Mutable declaration (MOV instruction)
+* `Let label == LOOP_A;` — Immutable symbolic label (equivalent to `const`)
+
+### Block Control
+
+* `Start: label` — Defines a FORMIA instruction block
+* `Return;` — Ends a FORMIA instruction block
+
+### Flow Control
+
+```formia
+if [X < Y] -> branch;
+for [counter > 0] -> loop;
+```
+
+These compile into:
+
+* `CMP` + conditional jump (e.g., `JL`, `JNE`, etc.)
+* `DEC` + `JNZ` for loops
+
+### Operators
+
+| FORMIA | Meaning        | NASM Instruction |
+| ------ | -------------- | ---------------- |
+| `+`    | Addition       | ADD              |
+| `-`    | Subtraction    | SUB              |
+| `*`    | Multiplication | MUL              |
+| `/`    | Division       | DIV              |
+| `%`    | Modulo         | not native       |
+| `^`    | Exponentiation | macro expansion  |
+
+### Assignment
+
+* `=`: Mutable
+* `==`: Immutable
+
+### Macro Blocks (CIAMS)
+
+```formia
+|my_macro|
+    X = X + 2;
+    Y = Y * X;
+Return;
+```
+
+### Comments
+
+* `# This is a comment`
+* `** Multiline comment **`
+
+---
+
+## V. Compiler Behavior
+
+### CLI Tool (formiac)
+
+* `.fom` in → `.asm` out
+* Optional `--compile` flag: `.asm` → `.obj` → `.exe`
+* Pure Python-based or integrated with `.bat` + GCC toolchain
+
+### Output Format
+
+```nasm
+section .data
+    buffer dq 0
+
+section .text
+    global _start
+_start:
+    MOV RAX, 5
+    ADD RAX, 2
+    MOV buffer, RAX
+    mov rax, 60
+    xor rdi, rdi
+    syscall
+```
+
+---
+
+## VI. Language Grammar (Simplified EBNF)
+
+```
+program         ::= {block}
+block           ::= 'Start:' identifier {statement} 'Return;'
+statement       ::= assignment | flow | macro_call | comment
+assignment      ::= 'Let' identifier '=' expression ';'
+flow            ::= 'if' '[' condition ']' '->' label ';'
+macro_call      ::= '|' identifier '|'';'
+comment         ::= '#' .* '\n'
+```
+
+---
+
+## VII. Advanced Features
+
+### CIAMS (Contextually Inferred Abstracted Macro Scripts)
+
+* Macros are inlined and expanded
+* No function calls — inlining only
+* Enables reusability without performance cost
+
+### Execution Blocks
+
+* Can define multiple blocks in one file
+* Each `Start:` block becomes a label or jump point
+
+---
+
+## VIII. FORMIA vs Other Languages
+
+| Language | Runtime | Compiled | Human-Readable | Instructional | Final Form |
+| -------- | ------- | -------- | -------------- | ------------- | ---------- |
+| FORMIA   | ❌       | ✅        | ✅              | ✅             | NASM       |
+| C        | ❌       | ✅        | 🟡             | 🟡            | Binary     |
+| Python   | ✅       | ❌        | ✅              | ❌             | Bytecode   |
+| Rust     | ❌       | ✅        | 🟡             | 🟡            | Binary     |
+| LLVM IR  | ❌       | ✅        | ❌              | ✅             | Machine IR |
+
+---
+
+## IX. Security & Auditing Benefits
+
+* No runtime = No injected behavior
+* No abstracted memory calls
+* Instruction-level inspection
+* Ideal for:
+
+  * Secure firmware
+  * Anti-cheat systems
+  * Hardware auditing
+  * Formal verification
+
+---
+
+## X. FORMIA Ecosystem Tools
+
+### CLI Tools
+
+* `formiac` — Main compiler
+* `build_formia.bat` — Assembly + linking script
+* `formiac_with_compile.py` — Python CLI compiler with auto-build
+
+### IDE Support
+
+* VS Code: `.tmLanguage` + marketplace extension
+* Atom, Sublime: CSON and syntax files included
+* Auto-completion and CIAMS folding supported
+
+### MIME + OS Integration
+
+* `.fom` associated as `FORMIA Source File`
+* MIME type: `application/x-formia`
+* PowerShell + Registry scripts provided
+
+---
+
+## XI. Future Roadmap
+
+* GUI IDE: FORMIA Studio
+* FORMIA microkernel (FORMIX)
+* FORMIA Game Engine (FGX)
+* FORMIA-bootable console (hardware-ready)
+* FORMIA-to-WASM emitter
+* FORMIA Formal Verification Layer (FVL)
+* FORMIA Inline Profiler (IPF)
+
+---
+
+## XII. Tagline
+
+> "Code That Speaks Machine — and Thinks Like You."
+
+---
+
+## XIII. Conclusion
+
+FORMIA represents a new class of language: readable, raw, real. It unites instruction and expression into one executable truth. From hardware bootloaders to AAA game engines, FORMIA is not a language you compile — it is a language you unleash.
+
+Welcome to the next evolution of executable logic.
+
+
 This language is:
 
 ✅ Human-readable (with intuitive syntax)
