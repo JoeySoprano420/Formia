@@ -1,5 +1,3 @@
-# Formia
-
 # FORMIA Language Specification
 
 **Title:** FORMIA (Formulating Outlines with Readable Meaning and Immediate Assembly)
