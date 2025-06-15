@@ -1,0 +1,45 @@
+🔹 Variables & Constants
+
+Let X = 0;
+Let Y = 1;
+Let counter = 9;
+Let label == start_here;
+
+🔹 Logic & Flow
+
+Start: if [X < Y] -> then
+    | CMP X, Y;
+      JL label_then;
+    |
+Return;
+
+Start: for [counter > 0] -> loop
+    | MOV RAX, counter;
+      DEC counter;
+      JNZ loop;
+    |
+Return;
+
+🔹 Memory & Type Constructs
+
+Start: new |buffer| = 128;
+    | CALL malloc;
+      MOV [buffer], RAX;
+    |
+Return;
+
+Start: delete |buffer|;
+    | MOV RDI, buffer;
+      CALL free;
+    |
+Return;
+
+🔹 Arithmetic
+
+Start: calc
+    X = X + Y;
+    X = X * 2;
+    X = X / Y;
+    X = X - 1;
+Return;
+
