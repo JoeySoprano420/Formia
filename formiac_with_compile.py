@@ -3211,3 +3211,19 @@ def run_backend_tests():
     assert callable(optimize_fcr)
     assert isinstance(SYMBOL_MAP, dict)
     print("[🧪] Backend IR validation tests passed.")
+
+def emit_arm64(fcr, path):
+    with open(path, 'w') as f:
+        f.write("    .section .text\n    .globl _start\n_start:\n")
+        for instr in fcr:
+            if instr["op"] == "mov":
+                f.write(f"    MOV X0, #{instr['value']}\n")
+            elif instr["op"] == "print":
+                f.write("    ; printing stub - syscall or delegate\n")
+            elif instr["op"] == "branch":
+                f.write(f"    CMP X0, #{instr['cond'].split()[-1]}\n")
+                f.write(f"    B.EQ {instr['label']}\n")
+            elif instr["op"] == "label":
+                f.write(f"{instr['label']}:\n")
+            elif instr["op"] == "ret":
+                f.write("    RET\n")
