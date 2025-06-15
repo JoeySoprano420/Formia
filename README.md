@@ -1135,3 +1135,245 @@ gpu_driver.fom
 
 
 
+# FORMIA Language Specification
+
+**Title:** FORMIA (Formulating Outlines with Readable Meaning and Immediate Assembly)
+**Version:** 1.0.0 (Foundational Release)
+**Author:** Violet Violet, Violet Aura Creations
+
+---
+
+## I. Overview
+
+### What is FORMIA?
+
+FORMIA is a Human-Readable, Assembly-Executable Instruction-Oriented Language (HRAE-IOL). It is designed for direct mapping to NASM x64 machine code while remaining legible, logical, and instructional in its layout. It is a language where **what you see is what the CPU executes**. It aims to combine the clarity of educational syntax with the power of raw machine-level control.
+
+FORMIA is both a programming language and a philosophy of code clarity. It blurs the line between high-level logic and low-level performance, serving as source code, intermediate representation, and executable layout at once.
+
+---
+
+## II. Design Principles
+
+### 1. Human-Legible Syntax
+
+* Outline-style formatting
+* Declarative control keywords (`Start`, `Return`, `Let`, etc.)
+* Clear block scoping with readable logic chains
+
+### 2. Direct Executability
+
+* Maps 1:1 with NASM x64 instructions
+* No interpreters or runtime required
+* Outputs `.asm` for direct `.obj` or `.exe` compilation
+
+### 3. Zero Overhead
+
+* No implicit memory allocation
+* No runtime GC
+* No headers, imports, or compiled libraries required
+
+### 4. Determinism
+
+* Instruction behavior is fully visible
+* Execution is linearly traceable
+* Predictable branching and flow
+
+### 5. Auditability
+
+* Designed for formal security, anti-cheat, and deterministic inspection
+* Perfect for secure systems, real-time apps, and educational transparency
+
+### 6. Structural Purity
+
+* No dynamic typing or ambiguous coercion
+* No inheritance confusion or object lifetime complexity
+* Linear assembly behavior with readable logic
+
+### 7. Production Optimization
+
+* Compatible with all major toolchains: NASM, YASM, GCC, Clang
+* Profiled for cache, register, and branch prediction optimizations
+* Generates low-latency, real-time capable binary output
+
+---
+
+## III. Use Cases
+
+* Kernel and bootloader development
+* Embedded systems and secure firmware
+* AAA game engine logic and graphics kernels
+* Formal verification, simulation, and instruction analysis
+* Custom compilers targeting FORMIA as intermediate language
+* Anti-exploit secure system development
+* Professional software defined with hardware determinism
+
+---
+
+## IV. Syntax & Keywords
+
+### Declaration
+
+* `Let X = 5;` — Mutable declaration (MOV instruction)
+* `Let label == LOOP_A;` — Immutable symbolic label (equivalent to `const`)
+
+### Block Control
+
+* `Start: label` — Defines a FORMIA instruction block
+* `Return;` — Ends a FORMIA instruction block
+
+### Flow Control
+
+```formia
+if [X < Y] -> branch;
+for [counter > 0] -> loop;
+```
+
+These compile into:
+
+* `CMP` + conditional jump (e.g., `JL`, `JNE`, etc.)
+* `DEC` + `JNZ` for loops
+
+### Operators
+
+| FORMIA | Meaning        | NASM Instruction |
+| ------ | -------------- | ---------------- |
+| `+`    | Addition       | ADD              |
+| `-`    | Subtraction    | SUB              |
+| `*`    | Multiplication | MUL              |
+| `/`    | Division       | DIV              |
+| `%`    | Modulo         | not native       |
+| `^`    | Exponentiation | macro expansion  |
+
+### Assignment
+
+* `=`: Mutable
+* `==`: Immutable
+
+### Macro Blocks (CIAMS)
+
+```formia
+|my_macro|
+    X = X + 2;
+    Y = Y * X;
+Return;
+```
+
+### Comments
+
+* `# This is a comment`
+* `** Multiline comment **`
+
+---
+
+## V. Memory Management
+
+### Static Allocation
+
+* `Let buffer = 0xFF00;` — Preallocates a fixed memory block
+
+### Dynamic Allocation
+
+* `new A;` — Generates a CALL malloc
+* `delete A;` — Generates a CALL free
+
+---
+
+## VI. Compiler & Toolchain
+
+### CLI Tool (formiac)
+
+* `.fom` in → `.asm` out
+* Optional `--compile` flag: `.asm` → `.obj` → `.exe`
+* Pure Python-based or integrated with `.bat` + GCC toolchain
+
+### build\_formia.bat
+
+```bat
+@echo off
+formiac %1 -o temp.asm --compile
+```
+
+### Python Compiler
+
+```python
+python formiac.py input.fom --compile
+```
+
+---
+
+## VII. Instruction Translation Table
+
+FORMIA → NASM Mapping (Core Subset):
+
+```text
+Let X = Y;        →    MOV X, Y
+X = A + B;        →    MOV RAX, A
+                    →    ADD RAX, B
+                    →    MOV X, RAX
+if [X > Y] -> L;  →    CMP X, Y
+                    →    JG L
+```
+
+---
+
+## VIII. FORMIA as an IR
+
+FORMIA is ideal as an Intermediate Representation:
+
+* More readable than LLVM IR
+* More low-level than C
+* Retains human context for debugging and verification
+* Allows security review and instruction profiling
+
+---
+
+## IX. FORMIA for Game Engines and Consoles
+
+* Deterministic execution: perfect for physics, frame sync, hit registration
+* Mod-free bytecode: avoids exploits, preserves IP
+* Predictable patching: only changed instruction sets
+* FORMIA-native console OS possible
+* Compiles entire subsystems with no undefined behavior
+
+---
+
+## X. MIME, IDE, and Ecosystem
+
+* MIME type: `application/x-formia`
+* VS Code, Sublime, Atom, Notepad++ syntax highlighting
+* Powershell registry scripts for `.fom` association
+* Icon packs, launcher EXEs, and GUI tools supported
+
+---
+
+## XI. Security Advantages
+
+* Instruction-precise code = verifiable behavior
+* Auditable binaries with known translation lineage
+* No dynamic types or runtime injection
+* Ideal for national defense, blockchain consensus, and anti-tamper tech
+
+---
+
+## XII. Future Direction
+
+* FORMIA OS kernel
+* FORMIA hardware-level gaming console
+* FORMIA-backed AI inference kernels
+* FORMIA learning mode for instruction timing profiling
+* FORMIA-to-WebAssembly transpiler
+
+---
+
+## XIII. Tagline
+
+**FORMIA** — *“Code That Speaks Machine — and Thinks Like You.”*
+
+---
+
+## XIV. Conclusion
+
+FORMIA is not just another language — it is a precision system. A toolkit for minds that want power without chaos, logic without layers, and outcomes without mystery. FORMIA is the closest union of code and machine thought possible today.
+
+It doesn’t compile — it becomes.
