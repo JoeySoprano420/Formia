@@ -4,79 +4,124 @@ import subprocess
 import sys
 
 formia_to_nasm = {
-    'and': 'AND', 'or': 'OR', 'xor': 'XOR', 'not': 'NOT', 'if': 'CMP',
-    'for': 'LOOP', 'new': 'CALL malloc', 'delete': 'CALL free',
-    'nullptr': 'XOR', 'throw': 'JMP throw_handler',
-    '+': 'ADD', '-': 'SUB', '*': 'MUL', '/': 'DIV', '=': 'MOV'
+    '+': 'ADD', '-': 'SUB', '*': 'IMUL', '/': 'IDIV',
+    '=': 'MOV', '==': 'JE', '!=': 'JNE', '<': 'JL', '>': 'JG'
 }
 
-def tokenize_formia_line(line):
-    tokens = re.findall(r'\w+|[=+*/\-<>[\]{};]|->|:=|==', line)
-    return (tokens[0], tokens[1:]) if tokens else ("", [])
+jump_counter = 0
+label_counter = 0
 
-def translate_to_nasm(keyword, tokens):
+def unique_label(prefix="L"):
+    global label_counter
+    label = f"{prefix}{label_counter}"
+    label_counter += 1
+    return label
+
+def tokenize_formia_line(line):
+    return re.findall(r'\w+|[=+*/\-<>\[\](){};:,"]+', line)
+
+def translate_to_nasm(keyword, tokens, context):
+    global jump_counter
     nasm_lines = []
     if keyword == "Let":
-        if len(tokens) >= 3 and tokens[1] == '=':
-            nasm_lines.append(f"MOV {tokens[0]}, {tokens[2]}")
+        var, value = tokens[0], tokens[2]
+        nasm_lines.append(f"    MOV qword [{var}], {value}")
+        context['variables'].add(var)
+    elif keyword == "input":
+        var = tokens[0]
+        nasm_lines.append(f"    MOV rdi, input_fmt")
+        nasm_lines.append(f"    MOV rsi, {var}")
+        nasm_lines.append(f"    CALL scanf")
+        context['variables'].add(var)
+    elif keyword == "print":
+        var = tokens[0]
+        nasm_lines.append(f"    MOV rdi, fmt")
+        nasm_lines.append(f"    MOV rsi, qword [{var}]")
+        nasm_lines.append(f"    XOR rax, rax")
+        nasm_lines.append(f"    CALL printf")
     elif keyword == "if":
-        cmp_left, cmp_op, cmp_right, jump_label = tokens[1], tokens[2], tokens[3], tokens[-1]
-        nasm_lines.append(f"CMP {cmp_left}, {cmp_right}")
-        jump_map = {'<': 'JL', '>': 'JG', '==': 'JE', '!=': 'JNE'}
-        if cmp_op in jump_map:
-            nasm_lines.append(f"{jump_map[cmp_op]} {jump_label}")
-    elif keyword == "new":
-        nasm_lines.append("CALL malloc")
-    elif keyword == "delete":
-        nasm_lines.append("CALL free")
+        var1, cmp, var2 = tokens[0], tokens[1], tokens[2]
+        jmp_label = unique_label("else")
+        context['jumps'].append(jmp_label)
+        nasm_lines.append(f"    MOV rax, qword [{var1}]")
+        nasm_lines.append(f"    CMP rax, qword [{var2}]")
+        nasm_lines.append(f"    {formia_to_nasm.get(cmp, 'JE')} {jmp_label}")
+    elif keyword == "endif":
+        end_label = context['jumps'].pop()
+        nasm_lines.append(f"{end_label}:")
+    elif keyword == "loop":
+        start_label = unique_label("loop_start")
+        end_label = unique_label("loop_end")
+        var, cmp, target = tokens[0], tokens[1], tokens[2]
+        context['loops'].append((start_label, end_label, var, cmp, target))
+        nasm_lines.append(f"{start_label}:")
+        nasm_lines.append(f"    MOV rax, qword [{var}]")
+        nasm_lines.append(f"    CMP rax, {target}")
+        nasm_lines.append(f"    {formia_to_nasm.get(cmp, 'JGE')} {end_label}")
+    elif keyword == "endloop":
+        start_label, end_label, var, cmp, target = context['loops'].pop()
+        nasm_lines.append(f"    INC qword [{var}]")
+        nasm_lines.append(f"    JMP {start_label}")
+        nasm_lines.append(f"{end_label}:")
+    elif keyword == "func":
+        func_name = tokens[0]
+        nasm_lines.append(f"{func_name}:")
+        context['functions'].add(func_name)
+    elif keyword == "ret":
+        nasm_lines.append(f"    RET")
+    elif keyword == "call":
+        nasm_lines.append(f"    CALL {tokens[0]}")
     elif '=' in tokens:
-        target = keyword
-        op_index = tokens.index('=')
-        if len(tokens) > op_index + 2 and tokens[op_index + 2] in formia_to_nasm:
-            src1, op, src2 = tokens[op_index + 1], tokens[op_index + 2], tokens[op_index + 3]
-            nasm_lines += [f"MOV RAX, {src1}", f"{formia_to_nasm[op]} RAX, {src2}", f"MOV {target}, RAX"]
-        else:
-            nasm_lines.append(f"MOV {target}, {tokens[op_index + 1]}")
+        idx = tokens.index('=')
+        dest, src = tokens[0], tokens[idx+1]
+        nasm_lines.append(f"    MOV qword [{dest}], {src}")
+        context['variables'].add(dest)
     return nasm_lines
 
 def parse_formia_code(source):
     output = []
+    context = {'variables': set(), 'jumps': [], 'loops': [], 'functions': set()}
     for line in source.strip().splitlines():
         line = line.strip()
-        if not line or line.startswith("#") or line == "Return;" or line.startswith("Start:"):
+        if not line or line.startswith("#"):
             continue
-        keyword, tokens = tokenize_formia_line(line)
-        output.extend(translate_to_nasm(keyword, tokens))
-    return output
+        tokens = tokenize_formia_line(line)
+        if not tokens:
+            continue
+        keyword = tokens[0]
+        output.extend(translate_to_nasm(keyword, tokens[1:], context))
+    return output, context['variables'], context['functions']
 
 def emit_nasm(formia_path, asm_path):
     with open(formia_path, 'r') as f:
         source = f.read()
 
-    nasm_output = parse_formia_code(source)
-    full_asm = [
+    nasm_output, vars_used, funcs = parse_formia_code(source)
+    data_section = [
         "section .data",
-        "    buffer dq 0",
-        "",
+        '    fmt db "%d", 10, 0',
+        '    input_fmt db "%d", 0'
+    ] + [f"    {v} dq 0" for v in vars_used]
+
+    text_section = [
         "section .text",
-        "    global _start",
-        "_start:"
-    ] + [f"    {line}" for line in nasm_output] + [
-        "    ; exit",
-        "    mov rax, 60",
-        "    xor rdi, rdi",
-        "    syscall"
+        "    extern printf",
+        "    extern scanf",
+        "    global main",
+        "main:",
+    ] + nasm_output + [
+        "    RET"
     ]
 
     with open(asm_path, 'w') as f:
-        f.write('\n'.join(full_asm))
-    print(f"Generated: {asm_path}")
+        f.write('\n'.join(data_section + [""] + text_section))
+    print(f"Generated NASM file: {asm_path}")
 
 def compile_to_exe(asm_path, exe_path):
-    obj_path = asm_path.replace(".asm", ".obj")
+    obj_path = asm_path.replace(".asm", ".o")
     try:
         print(f"Assembling {asm_path}...")
-        subprocess.check_call(["nasm", "-f", "win64", asm_path, "-o", obj_path])
+        subprocess.check_call(["nasm", "-fwin64", asm_path, "-o", obj_path])
         print(f"Linking {obj_path}...")
         subprocess.check_call(["gcc", obj_path, "-o", exe_path])
         print(f"Executable created: {exe_path}")
@@ -85,11 +130,15 @@ def compile_to_exe(asm_path, exe_path):
         sys.exit(1)
 
 def main():
-    parser = argparse.ArgumentParser(description="FORMIA CLI Compiler with Optional Executable Output")
-    parser.add_argument("source", help="FORMIA source file (.fom)")
+    parser = argparse.ArgumentParser(description="FORMIA Ultimate Compiler")
+    parser.add_argument("source", nargs='?', help="FORMIA source file (.fom)")
     parser.add_argument("-o", "--output", default="output.asm", help="Output .asm file")
-    parser.add_argument("--compile", action="store_true", help="Compile output.asm to .exe (requires NASM + GCC)")
+    parser.add_argument("--compile", action="store_true", help="Compile to .exe using NASM + GCC")
     args = parser.parse_args()
+
+    if not args.source:
+        print("[usage] python formiac_ultimate.py <source.fom> [--compile] [-o output.asm]")
+        sys.exit(1)
 
     emit_nasm(args.source, args.output)
 
