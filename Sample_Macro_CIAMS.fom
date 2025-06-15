@@ -1,0 +1,8 @@
+|double_and_compare|
+    X = X * 2;
+    if [X > Y] -> greater_branch;
+Return;
+
+Start: process_values
+    |double_and_compare|;
+Return;
