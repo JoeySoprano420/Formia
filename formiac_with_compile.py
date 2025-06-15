@@ -2,6 +2,10 @@ import argparse
 import re
 import subprocess
 import sys
+import json
+import os
+import platform
+import shutil
 
 formia_to_nasm = {
     '+': 'ADD', '-': 'SUB', '*': 'IMUL', '/': 'IDIV',
@@ -18,10 +22,47 @@ def unique_label(prefix="L"):
     return label
 
 def tokenize_formia_line(line):
-    return re.findall(r'\w+|[=+*/\-<>\[\](){};:,"]+', line)
+    return re.findall(r'\w+|[=+*/\-<>\[\](){};:,\"]+', line)
+
+def generate_fcr_instruction(keyword, tokens):
+    if keyword == "Let" and len(tokens) >= 3:
+        return {"op": "load", "dest": tokens[0], "value": tokens[2]}
+    elif keyword == "input":
+        return {"op": "input", "dest": tokens[0]}
+    elif keyword == "print":
+        return {"op": "print", "src": tokens[0]}
+    elif keyword == "if":
+        return {"op": "branch", "cond": f"{tokens[0]} {tokens[1]} {tokens[2]}", "label": unique_label("else")}
+    elif keyword == "loop":
+        return {"op": "loop", "cond": f"{tokens[0]} {tokens[1]} {tokens[2]}", "label": unique_label("loop")}
+    elif keyword == "call":
+        return {"op": "call", "target": tokens[0]}
+    elif keyword == "func":
+        return {"op": "func", "name": tokens[0]}
+    elif keyword == "ret":
+        return {"op": "ret"}
+    elif '=' in tokens:
+        idx = tokens.index('=')
+        return {"op": "mov", "dest": tokens[0], "value": tokens[idx+1]}
+    return {"op": "nop"}
+
+def parse_formia_code(source):
+    output = []
+    fcr = []
+    context = {'variables': set(), 'jumps': [], 'loops': [], 'functions': set()}
+    for line in source.strip().splitlines():
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        tokens = tokenize_formia_line(line)
+        if not tokens:
+            continue
+        keyword = tokens[0]
+        fcr.append(generate_fcr_instruction(keyword, tokens[1:]))
+        output.extend(translate_to_nasm(keyword, tokens[1:], context))
+    return output, context['variables'], context['functions'], fcr
 
 def translate_to_nasm(keyword, tokens, context):
-    global jump_counter
     nasm_lines = []
     if keyword == "Let":
         var, value = tokens[0], tokens[2]
@@ -78,25 +119,11 @@ def translate_to_nasm(keyword, tokens, context):
         context['variables'].add(dest)
     return nasm_lines
 
-def parse_formia_code(source):
-    output = []
-    context = {'variables': set(), 'jumps': [], 'loops': [], 'functions': set()}
-    for line in source.strip().splitlines():
-        line = line.strip()
-        if not line or line.startswith("#"):
-            continue
-        tokens = tokenize_formia_line(line)
-        if not tokens:
-            continue
-        keyword = tokens[0]
-        output.extend(translate_to_nasm(keyword, tokens[1:], context))
-    return output, context['variables'], context['functions']
-
 def emit_nasm(formia_path, asm_path):
     with open(formia_path, 'r') as f:
         source = f.read()
 
-    nasm_output, vars_used, funcs = parse_formia_code(source)
+    nasm_output, vars_used, funcs, fcr = parse_formia_code(source)
     data_section = [
         "section .data",
         '    fmt db "%d", 10, 0',
@@ -115,7 +142,13 @@ def emit_nasm(formia_path, asm_path):
 
     with open(asm_path, 'w') as f:
         f.write('\n'.join(data_section + [""] + text_section))
+
+    fcr_path = asm_path.replace(".asm", ".fcr.json")
+    with open(fcr_path, 'w') as f:
+        json.dump(fcr, f, indent=4)
+
     print(f"Generated NASM file: {asm_path}")
+    print(f"Generated FCR file: {fcr_path}")
 
 def compile_to_exe(asm_path, exe_path):
     obj_path = asm_path.replace(".asm", ".o")
@@ -131,14 +164,14 @@ def compile_to_exe(asm_path, exe_path):
 
 def main():
     parser = argparse.ArgumentParser(description="FORMIA Ultimate Compiler")
-    parser.add_argument("source", nargs='?', help="FORMIA source file (.fom)")
+    parser.add_argument("source", nargs='?', default=None, help="FORMIA source file (.fom)")
     parser.add_argument("-o", "--output", default="output.asm", help="Output .asm file")
     parser.add_argument("--compile", action="store_true", help="Compile to .exe using NASM + GCC")
     args = parser.parse_args()
 
     if not args.source:
         print("[usage] python formiac_ultimate.py <source.fom> [--compile] [-o output.asm]")
-        sys.exit(1)
+        return
 
     emit_nasm(args.source, args.output)
 
